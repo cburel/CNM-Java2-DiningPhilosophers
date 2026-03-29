@@ -78,26 +78,34 @@ public class BlockingTableware {
     }
 
     public synchronized boolean blockingEat() {
-
         try {
-            while (!iHaveFork() || !iHaveKnife()) {
-                wait();
+            synchronized (fork) {
+                while (true) {
+                    if (pickupFork() && pickupKnife()) {
+                        eat();
+
+                        putDownFork();
+                        putDownKnife();
+
+                        fork.notifyAll();
+
+                        fork.wait(1);
+
+                        break;
+                    } else {
+                        if (iHaveFork())
+                            putDownFork();
+                        if (iHaveKnife())
+                            putDownKnife();
+
+                        fork.wait(1);
+                    }
+                }
             }
-
-            pickupFork();
-            pickupKnife();
-
-            eat();
-
-            putDownFork();
-            putDownKnife();
-
-            notifyAll();
-
         } catch (InterruptedException e) {
-            System.out.println("Thread interrupted.");
+            System.out.println("Thread was interrupted");
+            return false;
         }
-
         return true;
     }
 
